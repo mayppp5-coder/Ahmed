@@ -3,11 +3,13 @@ import yt_dlp
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 
+# ---------------------- التوكن ----------------------
 BOT_TOKEN = "8646400281:AAFQAejRPcDfpGnBreUFziNzix0m7D8DKuA"
 users_file = "users.txt"
 
-# ---------------- إعدادات التحميل ----------------
+# ---------------------- إعدادات التحميل ----------------------
 def get_ydl_opts(is_audio=False):
+    cookies_file = "cookies.txt" if os.path.exists("cookies.txt") else None
     if is_audio:
         return {
             'format': 'bestaudio/best',
@@ -17,30 +19,28 @@ def get_ydl_opts(is_audio=False):
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3'
             }],
-            'cookiefile': 'cookies.txt',
+            'cookiefile': cookies_file,
             'user_agent': 'Mozilla/5.0'
         }
     else:
         return {
             'format': 'bestvideo+bestaudio/best',
             'outtmpl': 'video.%(ext)s',
-            'quiet': True,
             'merge_output_format': 'mp4',
-            'cookiefile': 'cookies.txt',
+            'quiet': True,
+            'cookiefile': cookies_file,
             'user_agent': 'Mozilla/5.0'
         }
 
-# ---------------- تحميل ----------------
+# ---------------------- تحميل الفيديو / الصوت ----------------------
 def download(url, is_audio=False):
     ydl_opts = get_ydl_opts(is_audio)
-
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
         filename = ydl.prepare_filename(info)
-
     return filename
 
-# ---------------- المستخدمين ----------------
+# ---------------------- إدارة المستخدمين ----------------------
 def save_user(user_id):
     if os.path.exists(users_file):
         with open(users_file, "r") as f:
@@ -59,7 +59,7 @@ def get_user_count():
             return len(f.read().splitlines())
     return 0
 
-# ---------------- /start ----------------
+# ---------------------- /start ----------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_user(update.message.from_user.id)
 
@@ -81,7 +81,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# ---------------- الأزرار ----------------
+# ---------------------- التعامل مع الأزرار ----------------------
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -93,7 +93,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['audio'] = False
         await query.edit_message_text("🔴 أرسل الرابط لتحميل الفيديو")
 
-# ---------------- استقبال الرابط ----------------
+# ---------------------- استقبال الرابط ----------------------
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text
     is_audio = context.user_data.get("audio", False)
@@ -119,12 +119,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await msg.delete()
 
-# ---------------- /stats ----------------
+# ---------------------- /stats ----------------------
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     count = get_user_count()
     await update.message.reply_text(f"👥 عدد مستخدمي بوت فزعة: {count}")
 
-# ---------------- تشغيل ----------------
+# ---------------------- تشغيل البوت ----------------------
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
